@@ -125,7 +125,52 @@ def view_results(request):
     teacher = request.user.teacher
     results = Result.objects.filter(course__teacher=teacher)
 
-    return render(request, 'view_results.html', {'results': results})
+    return render(request, 'view_result.html', {'results': results})
+
+
+@login_required
+def edit_result(request, result_id):
+    if not hasattr(request.user, 'teacher'):
+        messages.error(request, "Access denied.")
+        return redirect('login')
+
+    teacher = request.user.teacher
+    result = Result.objects.get(id=result_id)
+
+
+    if result.course.teacher != teacher:
+        messages.error(request, "You can only edit your own course results.")
+        return redirect('view_results')
+
+    if request.method == 'POST':
+        form = ResultForm(teacher=teacher, data=request.POST, instance=result)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Result updated successfully.")
+            return redirect('view_results')
+    else:
+        form = ResultForm(teacher=teacher, instance=result)
+
+    return render(request, 'edit_result.html', {'form': form, 'result': result})
+
+
+
+@login_required
+def delete_result(request, result_id):
+    if not hasattr(request.user, 'teacher'):
+        messages.error(request, "Access denied.")
+        return redirect('login')
+
+    teacher = request.user.teacher
+    result = Result.objects.get(id=result_id)
+
+    if result.course.teacher != teacher:
+        messages.error(request, "You can only delete your own course results.")
+        return redirect('view_results')
+
+    result.delete()
+    messages.success(request, "Result deleted successfully.")
+    return redirect('view_results')
 
 
 
